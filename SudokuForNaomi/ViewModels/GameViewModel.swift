@@ -1,0 +1,182 @@
+import Foundation
+import Observation
+
+/// Game state for a single Sudoku session. Owned by `GameView`.
+///
+/// Uses Apple's new `@Observable` macro (iOS 17+) — every stored `var` becomes
+/// observable to SwiftUI automatically, no `@Published` needed.
+@MainActor
+@Observable
+final class GameViewModel {
+    enum Phase: Equatable, Hashable {
+        case playing
+        case paused
+        case won
+        case quit
+        case failed
+    }
+
+    let difficulty: Difficulty
+    let startedAt: Date
+    var board: SudokuBoard
+    var phase: Phase = .playing
+    var mistakeCount: Int = 0
+    var elapsedSeconds: Int = 0
+    var selectedCell: SudokuBoard.Coord?
+
+    /// Internal timer accounting. Not user-facing.
+    @ObservationIgnored private var lastResumeTick: Date
+    @ObservationIgnored private var accumulatedSeconds: Int = 0
+    @ObservationIgnored private var timerTask: Task<Void, Never>?
+
+    init(difficulty: Difficulty, board: SudokuBoard, startedAt: Date = .now) {
+        self.difficulty = difficulty
+        self.board = board
+        self.startedAt = startedAt
+        self.lastResumeTick = startedAt
+    }
+
+    // MARK: - Derived UI helpers
+
+    var conflictingCells: Set<SudokuBoard.Coord> {
+        board.conflictingCells()
+    }
+
+    /// Cells sharing the selected cell's value — used to gently guide the eye.
+    var peerHighlightedCells: Set<SudokuBoard.Coord> {
+        guard let sel = selectedCell else { return [] }
+        let value = board.value(row: sel.row, col: sel.col)
+        guard value != 0 else { return [] }
+        var result: Set<SudokuBoard.Coord> = []
+        for r in 0..<9 {
+            for c in 0..<9 where board.grid[r][c] == value {
+                result.insert(.init(r, c))
+            }
+        }
+        return result
+    }
+
+    /// True iff the value placed by the user at (row, col) differs from the unique solution.
+    /// Givens are never mistakes.
+    func isMistake(row: Int, col: Int) -> Bool {
+        guard !board.isGiven(row: row, col: col) else { return false }
+        let v = board.value(row: row, col: col)
+        return v != 0 && v != board.solutionValue(row: row, col: col)
+    }
+
+    // MARK: - User actions
+
+    /// Place `value` (1–9) at the currently selected cell. `0` clears it.
+    /// Increments `mistakeCount` if the value disagrees with the solution.
+    func place(_ value: Int) {
+        guard phase == .playing,
+              let sel = selectedCell,
+              !board.isGiven(row: sel.row, col: sel.col),
+              (0...9).contains(value) else { return }
+
+        let previous = board.grid[sel.row][sel.col]
+        board.grid[sel.row][sel.col] = value
+
+        let isWrong = value != 0 && value != board.solutionValue(row: sel.row, col: sel.col)
+        // Penalize each distinct wrong placement — but tapping the same wrong value
+        // twice in a row shouldn't double-count.
+        if isWrong && value != previous {
+            mistakeCount += 1
+        }
+
+        if board.isSolved {
+            phase = .won
+            stopTimer()
+        }
+    }
+
+    func clearSelected() { place(0) }
+
+    func quit() {
+        guard phase == .playing || phase == .paused else { return }
+        phase = .quit
+        stopTimer()
+    }
+
+    func markFailed() {
+        guard phase == .playing || phase == .paused else { return }
+        phase = .failed
+        stopTimer()
+    }
+
+    func pause() {
+        guard phase == .playing else { return }
+        stopTimer()
+        phase = .paused
+    }
+
+    func resume() {
+        guard phase == .paused else { return }
+        phase = .playing
+        startTimer()
+    }
+
+    /// Wipe all user-entered cells, reset mistake/time counters, restart timer.
+    func reset() {
+        for r in 0..<9 {
+            for c in 0..<9 where !board.givens[r][c] {
+                board.grid[r][c] = 0
+            }
+        }
+        mistakeCount = 0
+        accumulatedSeconds = 0
+        elapsedSeconds = 0
+        lastResumeTick = .now
+        selectedCell = nil
+        if phase != .playing {
+            phase = .playing
+            startTimer()
+        }
+    }
+
+    // MARK: - Timer
+
+    func startTimer() {
+        guard timerTask == nil else { return }
+        lastResumeTick = .now
+        timerTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                await self?.tick()
+            }
+        }
+    }
+
+    func stopTimer() {
+        timerTask?.cancel()
+        timerTask = nil
+        accumulatedSeconds += Int(Date.now.timeIntervalSince(lastResumeTick))
+        elapsedSeconds = accumulatedSeconds
+    }
+
+    private func tick() {
+        guard phase == .playing else { return }
+        elapsedSeconds = accumulatedSeconds + Int(Date.now.timeIntervalSince(lastResumeTick))
+    }
+
+    // MARK: - Persistence helper
+
+    /// Build the `GameRecord` to persist. Returns nil if the game is still in progress.
+    func toGameRecord() -> GameRecord? {
+        let status: GameStatus
+        switch phase {
+        case .won: status = .won
+        case .quit: status = .quit
+        case .failed: status = .failed
+        case .playing, .paused: return nil
+        }
+        return GameRecord(
+            startedAt: startedAt,
+            endedAt: .now,
+            difficulty: difficulty,
+            status: status,
+            elapsedSeconds: elapsedSeconds,
+            mistakeCount: mistakeCount
+        )
+    }
+}
