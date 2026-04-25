@@ -10,9 +10,11 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     ENABLE_PREVIEWS: YES
+    # DEVELOPMENT_TEAM is intentionally unset here — it's set per-developer
+    # via Xcode's Signing & Capabilities pane (or via a local override in
+    # project.local.yml). This keeps the public repo from leaking team IDs.
 
 targets:
   SudokuForNaomi:
