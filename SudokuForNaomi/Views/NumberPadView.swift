@@ -23,8 +23,13 @@ struct NumberPadView: View {
                 } label: {
                     Image(systemName: "delete.left")
                         .font(.title2)
+                        .foregroundStyle(Color.accentColor)
                         .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(.thinMaterial)
+                        .background(Color.accentColor.opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.accentColor.opacity(0.35), lineWidth: 1)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -39,9 +44,14 @@ struct NumberPadView: View {
             viewModel.place(n)
         } label: {
             Text("\(n)")
-                .font(.title.weight(.medium).monospacedDigit())
+                .font(.title.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Color.accentColor)
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .background(.thinMaterial)
+                .background(Color.accentColor.opacity(0.15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.accentColor.opacity(0.35), lineWidth: 1)
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)

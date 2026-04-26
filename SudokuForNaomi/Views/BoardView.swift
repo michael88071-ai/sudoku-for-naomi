@@ -39,8 +39,12 @@ struct BoardView: View {
             for i in 0...9 {
                 let pos = CGFloat(i) * cellSide
                 let isThick = i % 3 == 0
-                let lineWidth: CGFloat = isThick ? 2.5 : 0.5
-                let color: Color = isThick ? .primary : .gray.opacity(0.55)
+                let lineWidth: CGFloat = isThick ? 2.5 : 0.8
+                // Always use a fixed dark gray (not `.primary`, which flips with
+                // color scheme) so lines stay visible against the user's chosen
+                // background. Default white background needs near-black box
+                // dividers and a clearly-visible mid-gray for the thin grid.
+                let color: Color = isThick ? Color.black.opacity(0.85) : Color.gray.opacity(0.7)
 
                 let vertical = Path { p in
                     p.move(to: CGPoint(x: pos, y: 0))
