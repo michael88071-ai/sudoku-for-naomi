@@ -5,6 +5,8 @@ struct CellView: View {
     let row: Int
     let col: Int
 
+    @Environment(AppearanceSettings.self) private var appearance
+
     var body: some View {
         let coord = SudokuBoard.Coord(row, col)
         let value = viewModel.board.value(row: row, col: col)
@@ -24,7 +26,7 @@ struct CellView: View {
 
             if value > 0 {
                 Text("\(value)")
-                    .font(.system(size: 24, weight: isGiven ? .bold : .medium, design: .rounded))
+                    .font(.system(size: appearance.cellFontSize, weight: isGiven ? .bold : .medium, design: .rounded))
                     .foregroundStyle(textColor(isGiven: isGiven, isFlagged: isWrong || isConflict))
             }
         }
@@ -49,13 +51,15 @@ struct CellView: View {
         } else if inLine {
             Color.accentColor.opacity(0.08)
         } else {
-            Color(.systemBackground)
+            appearance.backgroundColor
         }
     }
 
     private func textColor(isGiven: Bool, isFlagged: Bool) -> Color {
         if isFlagged { return .red }
-        if isGiven { return .primary }
-        return Color.accentColor
+        // Givens render in the user's chosen text color at full strength; player-entered
+        // digits use the same hue at lower opacity so they stay visually distinct without
+        // pulling in an unrelated accent color the user didn't pick.
+        return isGiven ? appearance.textColor : appearance.textColor.opacity(0.7)
     }
 }

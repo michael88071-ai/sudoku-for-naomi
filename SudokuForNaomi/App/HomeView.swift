@@ -8,6 +8,7 @@ enum HomeRoute: Hashable {
     case learnPicker
     case lesson(String)                   // lesson id
     case techniqueExample(TechniqueID)    // jump straight to first example
+    case settings
 }
 
 struct HomeView: View {
@@ -16,6 +17,21 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button {
+                        path.append(HomeRoute.settings)
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                            .padding(10)
+                    }
+                    .accessibilityLabel("Settings")
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+
                 Spacer()
 
                 VStack(spacing: 8) {
@@ -65,6 +81,8 @@ struct HomeView: View {
                     } else {
                         ContentUnavailableView("No example available", systemImage: "exclamationmark.triangle")
                     }
+                case .settings:
+                    SettingsView()
                 }
             }
         }
@@ -100,4 +118,5 @@ struct HomeView: View {
 #Preview {
     HomeView()
         .modelContainer(for: GameRecord.self, inMemory: true)
+        .environment(AppearanceSettings())
 }

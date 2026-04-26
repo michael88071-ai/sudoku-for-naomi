@@ -15,14 +15,16 @@ struct CandidateCellView: View {
     /// True when the highlight is calling out a digit that's about to be placed (green).
     let isPlacement: Bool
 
+    @Environment(AppearanceSettings.self) private var appearance
+
     var body: some View {
         ZStack {
             background
 
             if value > 0 {
                 Text("\(value)")
-                    .font(.system(size: 22, weight: isGiven ? .bold : .medium, design: .rounded))
-                    .foregroundStyle(isGiven ? Color.primary : Color.accentColor)
+                    .font(.system(size: max(appearance.cellFontSize - 2, 14), weight: isGiven ? .bold : .medium, design: .rounded))
+                    .foregroundStyle(isGiven ? appearance.textColor : appearance.textColor.opacity(0.7))
             } else {
                 pencilGrid
             }
@@ -41,7 +43,7 @@ struct CandidateCellView: View {
         case .unit:
             Color.accentColor.opacity(0.06)
         case .none:
-            Color(.systemBackground)
+            appearance.backgroundColor
         }
     }
 
@@ -74,6 +76,6 @@ struct CandidateCellView: View {
             if isPlacement { return .green }
             return .orange
         }
-        return .secondary
+        return appearance.textColor.opacity(0.55)
     }
 }
