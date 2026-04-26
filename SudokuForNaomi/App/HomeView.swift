@@ -5,6 +5,9 @@ enum HomeRoute: Hashable {
     case difficultyPicker
     case game(Difficulty)
     case history
+    case learnPicker
+    case lesson(String)                   // lesson id
+    case techniqueExample(TechniqueID)    // jump straight to first example
 }
 
 struct HomeView: View {
@@ -29,6 +32,9 @@ struct HomeView: View {
                     primaryButton(title: "New Game", systemImage: "play.fill") {
                         path.append(HomeRoute.difficultyPicker)
                     }
+                    secondaryButton(title: "Learn", systemImage: "lightbulb.fill") {
+                        path.append(HomeRoute.learnPicker)
+                    }
                     secondaryButton(title: "History", systemImage: "clock.arrow.circlepath") {
                         path.append(HomeRoute.history)
                     }
@@ -45,6 +51,20 @@ struct HomeView: View {
                         .navigationBarBackButtonHidden(true)
                 case .history:
                     HistoryView()
+                case .learnPicker:
+                    LearnView(path: $path)
+                case .lesson(let lessonID):
+                    if let lesson = LessonCatalog.lesson(id: lessonID) {
+                        LessonView(lesson: lesson)
+                    } else {
+                        ContentUnavailableView("Lesson not found", systemImage: "exclamationmark.triangle")
+                    }
+                case .techniqueExample(let tech):
+                    if let example = TechniqueLessonFinder.firstExample(of: tech) {
+                        LessonView(lesson: example.lesson, focusTechnique: tech)
+                    } else {
+                        ContentUnavailableView("No example available", systemImage: "exclamationmark.triangle")
+                    }
                 }
             }
         }
