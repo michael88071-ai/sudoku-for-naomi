@@ -35,7 +35,24 @@ enum SudokuGenerator {
     /// puzzle still has a unique completion. We may stop short of `targetClueCount`
     /// if too many removals would break uniqueness — that's fine; the puzzle is still
     /// valid, just slightly easier than the target.
+    ///
+    /// For difficulties with `requiresAdvancedTechniques`, the result is additionally
+    /// gated through the singles-only solver: candidates that singles alone can finish
+    /// are rejected, so the player must reach for locked candidates / subsets / etc.
     static func generatePuzzle(difficulty: Difficulty) -> (puzzle: [[Int]], solution: [[Int]]) {
+        let maxAttempts = difficulty.requiresAdvancedTechniques ? 40 : 1
+        var lastResult: (puzzle: [[Int]], solution: [[Int]])!
+        for _ in 0..<maxAttempts {
+            let candidate = generateOnce(difficulty: difficulty)
+            lastResult = candidate
+            if !difficulty.requiresAdvancedTechniques { return candidate }
+            if !SinglesOnlySolver.solves(candidate.puzzle) { return candidate }
+        }
+        // Couldn't generate a strictly-harder puzzle within budget — fall back.
+        return lastResult
+    }
+
+    private static func generateOnce(difficulty: Difficulty) -> (puzzle: [[Int]], solution: [[Int]]) {
         var rng = SystemRandomNumberGenerator()
         let solution = generateSolvedGrid(rng: &rng)
         var puzzle = solution

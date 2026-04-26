@@ -54,4 +54,20 @@ final class SudokuGeneratorTests: XCTestCase {
             XCTAssertLessThanOrEqual(clues, 81)
         }
     }
+
+    func test_extremePuzzle_isHarderThanHard_byClueCountAndTechniques() {
+        // Extreme should target fewer clues than Hard.
+        XCTAssertLessThan(Difficulty.extreme.targetClueCount, Difficulty.hard.targetClueCount)
+
+        // And the generator should usually emit a puzzle that singles alone can't crack.
+        // Allow a couple of fallbacks (the generator caps retries to keep latency bounded).
+        var advancedRequired = 0
+        let trials = 3
+        for _ in 0..<trials {
+            let result = SudokuGenerator.generatePuzzle(difficulty: .extreme)
+            if !SinglesOnlySolver.solves(result.puzzle) { advancedRequired += 1 }
+        }
+        XCTAssertGreaterThanOrEqual(advancedRequired, trials - 1,
+            "Extreme should produce singles-resistant puzzles in at least \(trials - 1)/\(trials) trials")
+    }
 }
