@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DifficultyPickerView: View {
     @Binding var path: NavigationPath
+    @Environment(AppearanceSettings.self) private var appearance
 
     var body: some View {
         VStack(spacing: 16) {
@@ -25,6 +26,8 @@ struct DifficultyPickerView: View {
 
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(appearance.backgroundColor.ignoresSafeArea())
         .navigationTitle("New Game")
         .navigationBarTitleDisplayMode(.inline)
     }

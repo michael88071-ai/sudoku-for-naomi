@@ -13,6 +13,7 @@ enum HomeRoute: Hashable {
 
 struct HomeView: View {
     @State private var path = NavigationPath()
+    @Environment(AppearanceSettings.self) private var appearance
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -58,6 +59,8 @@ struct HomeView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 48)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(appearance.backgroundColor.ignoresSafeArea())
             .navigationDestination(for: HomeRoute.self) { route in
                 switch route {
                 case .difficultyPicker:

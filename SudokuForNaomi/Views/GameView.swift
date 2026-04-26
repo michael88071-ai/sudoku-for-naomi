@@ -5,6 +5,7 @@ struct GameView: View {
     let difficulty: Difficulty
     @Binding var path: NavigationPath
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppearanceSettings.self) private var appearance
 
     @State private var viewModel: GameViewModel?
     @State private var endResult: EndResult?
@@ -47,6 +48,8 @@ struct GameView: View {
                 Spacer()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(appearance.backgroundColor.ignoresSafeArea())
         .task {
             await loadIfNeeded()
         }

@@ -4,6 +4,7 @@ import SwiftData
 struct HistoryView: View {
     @Query(sort: \GameRecord.endedAt, order: .reverse) private var records: [GameRecord]
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppearanceSettings.self) private var appearance
 
     var body: some View {
         Group {
@@ -25,8 +26,11 @@ struct HistoryView: View {
                         .onDelete(perform: delete)
                     }
                 }
+                .scrollContentBackground(.hidden)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(appearance.backgroundColor.ignoresSafeArea())
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.inline)
     }

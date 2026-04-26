@@ -5,6 +5,7 @@ import SwiftUI
 /// advance.
 struct LessonView: View {
     @State private var session: LearningSessionViewModel
+    @Environment(AppearanceSettings.self) private var appearance
     /// Optional technique to fast-forward to on first appearance — tapping a
     /// technique card lands directly on its example step.
     let focusTechnique: TechniqueID?
@@ -33,6 +34,8 @@ struct LessonView: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(appearance.backgroundColor.ignoresSafeArea())
         .navigationTitle(session.lesson.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

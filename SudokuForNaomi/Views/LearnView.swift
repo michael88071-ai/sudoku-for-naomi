@@ -5,6 +5,7 @@ import SwiftUI
 ///   - "Techniques" — jump straight to the first example of a specific technique.
 struct LearnView: View {
     @Binding var path: NavigationPath
+    @Environment(AppearanceSettings.self) private var appearance
 
     var body: some View {
         ScrollView {
@@ -15,6 +16,8 @@ struct LearnView: View {
             }
             .padding(20)
         }
+        .scrollContentBackground(.hidden)
+        .background(appearance.backgroundColor.ignoresSafeArea())
         .navigationTitle("Learn")
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -5,8 +5,11 @@ struct BoardView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let side = min(geo.size.width, geo.size.height)
-            let cellSide = side / 9
+            // Snap each cell to an integer point so all 9 columns/rows render the
+            // exact same width — sub-pixel rounding combined with the thick box
+            // dividers was making edge cells visually narrower than middle cells.
+            let cellSide = floor(min(geo.size.width, geo.size.height) / 9)
+            let side = cellSide * 9
 
             ZStack {
                 // Cell grid

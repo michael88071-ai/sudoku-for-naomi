@@ -45,11 +45,14 @@ struct CellView: View {
     @ViewBuilder
     private func backgroundFor(isSelected: Bool, isPeer: Bool, inLine: Bool) -> some View {
         if isSelected {
-            Color.accentColor.opacity(0.40)
+            Color.accentColor.opacity(0.55)
         } else if isPeer {
-            Color.accentColor.opacity(0.22)
+            // Same-digit peers — strongest non-selection tint so they pop against white.
+            Color.accentColor.opacity(0.34)
         } else if inLine {
-            Color.accentColor.opacity(0.08)
+            // Row/column of the selected cell. Bumped from 0.08 → 0.20 so it's
+            // actually visible against a white board background.
+            Color.accentColor.opacity(0.20)
         } else {
             appearance.backgroundColor
         }
