@@ -16,6 +16,7 @@ struct CellView: View {
         let isInRowOrCol = isInSameRowOrCol(coord: coord)
         let isConflict = viewModel.conflictingCells.contains(coord)
         let isWrong = viewModel.isMistake(row: row, col: col)
+        let isHint = viewModel.hintCell == coord
 
         ZStack {
             backgroundFor(
@@ -29,11 +30,26 @@ struct CellView: View {
                     .font(.system(size: appearance.cellFontSize, weight: isGiven ? .bold : .medium, design: .rounded))
                     .foregroundStyle(textColor(isGiven: isGiven, isFlagged: isWrong || isConflict))
             }
+
+            if isHint {
+                hintFlashOverlay
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture {
             viewModel.selectedCell = coord
         }
+    }
+
+    /// Yellow overlay that pulses while this cell is the active hint target.
+    /// Disappears with the hint state via `viewModel.hintCell` (cleared after 3s).
+    private var hintFlashOverlay: some View {
+        Rectangle()
+            .fill(Color.yellow)
+            .phaseAnimator([0.15, 0.65]) { view, opacity in
+                view.opacity(opacity)
+            } animation: { _ in .easeInOut(duration: 0.45) }
+            .allowsHitTesting(false)
     }
 
     private func isInSameRowOrCol(coord: SudokuBoard.Coord) -> Bool {

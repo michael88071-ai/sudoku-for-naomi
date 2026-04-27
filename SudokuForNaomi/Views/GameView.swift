@@ -10,8 +10,8 @@ struct GameView: View {
     @State private var viewModel: GameViewModel?
     @State private var endResult: EndResult?
     @State private var showQuitConfirm = false
-    @State private var showFailConfirm = false
     @State private var showResetConfirm = false
+    @State private var showHintInfo = false
 
     /// Snapshot of the final game state, used to drive the GameOver sheet.
     struct EndResult: Identifiable {
@@ -31,6 +31,10 @@ struct GameView: View {
 
                 BoardView(viewModel: vm)
                     .padding(.horizontal, 12)
+
+                hintInfoRow(vm: vm)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
 
                 Spacer(minLength: 8)
 
@@ -62,12 +66,6 @@ struct GameView: View {
         } message: {
             Text("This game will be saved as Quit in your history.")
         }
-        .alert("Mark as Failed?", isPresented: $showFailConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("Mark Failed", role: .destructive) { endGame(.failed) }
-        } message: {
-            Text("Use this when you've given up trying to solve the puzzle.")
-        }
         .alert("Reset Board?", isPresented: $showResetConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) { viewModel?.reset() }
@@ -79,6 +77,11 @@ struct GameView: View {
                 path = NavigationPath()
             }
             .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showHintInfo) {
+            if let hint = viewModel?.latestHint {
+                HintInfoPanelView(hint: hint)
+            }
         }
         .onChange(of: viewModel?.phase) { _, new in
             if new == .won, let vm = viewModel, endResult == nil {
@@ -181,12 +184,42 @@ struct GameView: View {
             actionButton(label: "Reset", systemImage: "arrow.counterclockwise") {
                 showResetConfirm = true
             }
-            actionButton(label: "Failed", systemImage: "flag.fill", role: .destructive) {
-                showFailConfirm = true
+            actionButton(label: "Hint", systemImage: "lightbulb.fill") {
+                viewModel?.requestHint()
             }
             actionButton(label: "Quit", systemImage: "xmark", role: .destructive) {
                 showQuitConfirm = true
             }
+        }
+    }
+
+    @ViewBuilder
+    private func hintInfoRow(vm: GameViewModel) -> some View {
+        HStack(spacing: 8) {
+            Spacer()
+            Button {
+                showHintInfo = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.title3)
+                    if let hint = vm.latestHint {
+                        Text(hint.step.technique.displayName)
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                    } else {
+                        Text("No hint yet")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.thinMaterial, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(vm.latestHint == nil)
+            .opacity(vm.latestHint == nil ? 0.5 : 1.0)
         }
     }
 

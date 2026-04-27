@@ -92,4 +92,32 @@ final class GameViewModelTests: XCTestCase {
         let vm = makeNearlyComplete(expected: 1)
         XCTAssertNil(vm.toGameRecord())
     }
+
+    func test_requestHint_flashesTheNextEasiestCell() {
+        let vm = makeNearlyComplete(expected: 1)
+        vm.requestHint()
+        XCTAssertEqual(vm.hintCell, .init(0, 0))
+        XCTAssertNotNil(vm.latestHint)
+        XCTAssertEqual(vm.latestHint?.target, .init(0, 0))
+    }
+
+    func test_requestHint_ignoresWrongUserEntries() {
+        let vm = makeNearlyComplete(expected: 1)
+        // Drop a wrong value in a different cell. The hint must still find the
+        // (0,0) full-house regardless of the mistake elsewhere.
+        vm.selectedCell = .init(8, 8)
+        vm.place(1)  // wrong (solution at 8,8 is 8)
+        vm.requestHint()
+        XCTAssertEqual(vm.hintCell, .init(0, 0))
+    }
+
+    func test_reset_clearsHintState() {
+        let vm = makeNearlyComplete(expected: 1)
+        vm.requestHint()
+        XCTAssertNotNil(vm.hintCell)
+
+        vm.reset()
+        XCTAssertNil(vm.hintCell)
+        XCTAssertNil(vm.latestHint)
+    }
 }

@@ -24,10 +24,27 @@ final class GameViewModel {
     var elapsedSeconds: Int = 0
     var selectedCell: SudokuBoard.Coord?
 
+    /// Snapshot of the most recently requested hint. Drives the flashing cell
+    /// and the info panel below the board.
+    struct HintContext: Equatable {
+        let grid: [[Int]]
+        let givens: [[Bool]]
+        let candidates: CandidateGrid
+        let step: LearningStep
+        let target: SudokuBoard.Coord
+    }
+
+    /// The cell that should currently be flashing as a hint. Cleared 3 seconds
+    /// after `requestHint()` runs.
+    var hintCell: SudokuBoard.Coord?
+    /// The most recent hint, kept around for the info panel even after the flash fades.
+    var latestHint: HintContext?
+
     /// Internal timer accounting. Not user-facing.
     @ObservationIgnored private var lastResumeTick: Date
     @ObservationIgnored private var accumulatedSeconds: Int = 0
     @ObservationIgnored private var timerTask: Task<Void, Never>?
+    @ObservationIgnored private var hintFlashTask: Task<Void, Never>?
 
     init(difficulty: Difficulty, board: SudokuBoard, startedAt: Date = .now) {
         self.difficulty = difficulty
@@ -92,6 +109,62 @@ final class GameViewModel {
 
     func clearSelected() { place(0) }
 
+    /// Find the next-easiest cell to fill given the current correct progress
+    /// and flash it for 3 seconds. Wrong user entries are ignored when running
+    /// the detectors so a mistake elsewhere doesn't poison the hint search.
+    func requestHint() {
+        guard phase == .playing else { return }
+
+        var grid = Array(repeating: Array(repeating: 0, count: 9), count: 9)
+        for r in 0..<9 {
+            for c in 0..<9 {
+                let v = board.grid[r][c]
+                if v != 0 && v == board.solution[r][c] {
+                    grid[r][c] = v
+                }
+            }
+        }
+        let candidates = CandidateGrid(from: grid)
+        guard let step = LearningWalkthrough.nextStep(grid: grid, candidates: candidates) else { return }
+
+        let target: SudokuBoard.Coord
+        if let placement = step.actions.first(where: {
+            if case .place = $0 { return true } else { return false }
+        }), case let .place(r, c, _) = placement {
+            target = SudokuBoard.Coord(r, c)
+        } else if let first = step.actions.first {
+            switch first {
+            case .place(let r, let c, _), .eliminate(let r, let c, _):
+                target = SudokuBoard.Coord(r, c)
+            }
+        } else if let highlight = step.highlights.first(where: { $0.role == .target }) {
+            target = SudokuBoard.Coord(highlight.row, highlight.col)
+        } else {
+            return
+        }
+
+        latestHint = HintContext(
+            grid: grid,
+            givens: board.givens,
+            candidates: candidates,
+            step: step,
+            target: target
+        )
+        hintCell = target
+
+        hintFlashTask?.cancel()
+        hintFlashTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                if self.hintCell == target {
+                    self.hintCell = nil
+                }
+            }
+        }
+    }
+
     func quit() {
         guard phase == .playing || phase == .paused else { return }
         phase = .quit
@@ -128,6 +201,10 @@ final class GameViewModel {
         elapsedSeconds = 0
         lastResumeTick = .now
         selectedCell = nil
+        hintCell = nil
+        latestHint = nil
+        hintFlashTask?.cancel()
+        hintFlashTask = nil
         if phase != .playing {
             phase = .playing
             startTimer()
